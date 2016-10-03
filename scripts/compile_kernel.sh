@@ -13,7 +13,7 @@ BUILD_ROOT=/var/kernel_build
 BUILD_CACHE=$BUILD_ROOT/cache
 ARM_TOOLS=$BUILD_CACHE/tools
 LINUX_KERNEL=$BUILD_CACHE/linux-kernel
-LINUX_KERNEL_COMMIT=4eda74f2dfcc8875482575c79471bde6766de3ad # Linux 4.4.15
+# LINUX_KERNEL_COMMIT=4eda74f2dfcc8875482575c79471bde6766de3ad # Linux 4.4.15
 # LINUX_KERNEL_COMMIT=52261e73a34f9ed7f1d049902842895a2c433a50 # Linux 4.4.10
 # LINUX_KERNEL_COMMIT=36311a9ec4904c080bbdfcefc0f3d609ed508224 # Linux 4.1.8
 # LINUX_KERNEL_COMMIT="59e76bb7e2936acd74938bb385f0884e34b91d72"
@@ -87,6 +87,27 @@ function setup_arm_cross_compiler_toolchain () {
 function setup_linux_kernel_sources () {
   echo "### Check if Raspberry Pi Linux Kernel repository at ${LINUX_KERNEL} is still up to date"
   clone_or_update_repo_for 'https://github.com/raspberrypi/linux.git' $LINUX_KERNEL $LINUX_KERNEL_COMMIT
+
+  pushd $LINUX_KERNEL
+
+  #download aufs source
+  rm -rf aufs4-standalone
+  git clone 'https://github.com/sfjro/aufs4-standalone'
+  cd aufs4-standalone
+  git checkout origin/aufs4.4
+
+  cp -a fs ../
+  cp include/uapi/linux/aufs_type.h ../include/uapi/linux
+  cd ..
+
+  for patch in $(ls aufs4-standalone/*.patch); do
+    patch -p1 < $patch
+  done
+
+  make mrproper
+
+  popd
+
   echo "### Cleaning .version file for deb packages"
   rm -f $LINUX_KERNEL/.version
 }
